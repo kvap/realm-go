@@ -13,38 +13,34 @@ func main() {
 	}
 	defer sg.Destroy()
 
-	g, err := sg.BeginWrite()
-	if err != nil {
-		log.Printf("failed to begin write transaction: %v", err)
-		return
-	}
-
-	hasTable, err := g.HasTable("Items")
-	if err != nil {
-		log.Printf("failed to check if table exists: %v", err)
-		return
-	}
-
-	var t *realm.Table
-	if !hasTable {
-		t, err = g.AddTable("Items", true)
+	err = sg.Write(func(g *realm.Group) bool {
+		hasTable, err := g.HasTable("Items")
 		if err != nil {
-			log.Printf("failed to add table: %v", err)
-			return
+			log.Printf("failed to check if table exists: %v", err)
+			return false
 		}
-		log.Print("added the table")
-	} else {
-		t, err = g.GetTableByName("Items")
-		if err != nil {
-			log.Printf("failed to get table: %v", err)
-			return
-		}
-		log.Print("got the table")
-	}
-	defer t.Destroy()
 
-	if err := sg.Commit(); err != nil {
-		log.Printf("failed to commit: %v", err)
+		var t *realm.Table
+		if !hasTable {
+			t, err = g.AddTable("Items", true)
+			if err != nil {
+				log.Printf("failed to add table: %v", err)
+				return false
+			}
+			log.Print("added the table")
+		} else {
+			t, err = g.GetTableByName("Items")
+			if err != nil {
+				log.Printf("failed to get table: %v", err)
+				return false
+			}
+			log.Print("got the table")
+		}
+		defer t.Destroy()
+		return true
+	})
+	if err != nil {
+		log.Printf("write transaction failed: %v", err)
 		return
 	}
 

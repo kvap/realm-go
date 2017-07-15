@@ -70,6 +70,19 @@ func (sg *SharedGroup) BeginRead() (*Group, error) {
 	return nil, errors.New(C.GoString(errString))
 }
 
+func (sg *SharedGroup) Write(writer func(*Group) bool) error {
+	g, err := sg.BeginWrite()
+	if err != nil {
+		return err
+	}
+
+	if writer(g) {
+		return sg.Commit()
+	} else {
+		return sg.Rollback()
+	}
+}
+
 func (sg *SharedGroup) BeginWrite() (*Group, error) {
 	var errString *C.char
 	var g Group
